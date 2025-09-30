@@ -143,21 +143,24 @@ export default function ContactsPage() {
 
   const handleAddStudent = async (studentData: Partial<Student>) => {
     try {
-      const response = await fetch('https://tatabatata.app.n8n.cloud/webhook-test/new-student', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name_student: studentData.name,
-          phone_number: studentData.phone,
-          academic_year: studentData.grade,
-          paid_amount: parseFloat(studentData.paidAmount?.replace('$', '') || '0'),
-          remaining_amount: 0,
-          current_sessions: studentData.classesCount || 0,
-          deducted_sessions: 0,
-        }),
-      })
+      const response = await fetch(
+        'https://primary-production-6fc94.up.railway.app/webhook-test/new-student',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name_student: studentData.name,
+            phone_number: studentData.phone,
+            academic_year: studentData.grade,
+            paid_amount: parseFloat(studentData.paidAmount?.replace('$', '') || '0'),
+            remaining_amount: 0,
+            current_sessions: studentData.classesCount || 0,
+            deducted_sessions: 0,
+          }),
+        }
+      )
 
       if (response.ok) {
         setIsDialogOpen(false)
