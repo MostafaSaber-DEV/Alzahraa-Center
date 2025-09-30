@@ -141,9 +141,34 @@ export default function ContactsPage() {
     fetchStudents()
   }
 
-  const handleAddStudent = (studentData: Partial<Student>) => {
-    // This would integrate with the existing POST API
-    console.log('Add student:', studentData)
+  const handleAddStudent = async (studentData: Partial<Student>) => {
+    try {
+      const response = await fetch('https://tatabatata.app.n8n.cloud/webhook-test/new-student', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name_student: studentData.name,
+          phone_number: studentData.phone,
+          academic_year: studentData.grade,
+          paid_amount: parseFloat(studentData.paidAmount?.replace('$', '') || '0'),
+          remaining_amount: 0,
+          current_sessions: studentData.classesCount || 0,
+          deducted_sessions: 0,
+        }),
+      })
+
+      if (response.ok) {
+        setIsDialogOpen(false)
+        setEditingStudent(null)
+        fetchStudents() // Refresh the list
+      } else {
+        console.error('Failed to add student')
+      }
+    } catch (error) {
+      console.error('Error adding student:', error)
+    }
   }
 
   const handleEditStudent = (studentData: Partial<Student>) => {
@@ -163,8 +188,8 @@ export default function ContactsPage() {
         <div className="flex-1 space-y-6 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">Contacts</h1>
-              <p className="text-muted-foreground">Loading contacts...</p>
+              <h1 className="text-3xl font-bold tracking-tight">Students</h1>
+              <p className="text-muted-foreground">Loading Students...</p>
             </div>
           </div>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
