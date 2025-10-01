@@ -30,7 +30,32 @@ export interface ContactStudent {
   name_student: string
   phone_number: string
   paid_amount: number
-  subscriptions: { remaining_sessions: number }[] | null
+  subscriptions: { remaining_sessions: number; total_sessions: number }[] | null
+}
+
+export interface Group {
+  id: string
+  name: string
+  description: string | null
+  subject: string
+  level: string
+  max_students: number
+  session_price: number
+  schedule_days: string[]
+  schedule_time: string
+  duration_minutes: number
+  teacher_id: string
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface GroupWithTeacher extends Group {
+  teacher: {
+    id: string
+    full_name: string | null
+    email: string
+  } | null
 }
 
 export interface ApiResponse<T> {

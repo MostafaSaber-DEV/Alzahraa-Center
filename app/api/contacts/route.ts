@@ -38,7 +38,8 @@ export async function GET(request: Request): Promise<NextResponse<ApiResponse<Co
         phone_number,
         paid_amount,
         subscriptions (
-          remaining_sessions
+          remaining_sessions,
+          total_sessions
         )
       `
       )

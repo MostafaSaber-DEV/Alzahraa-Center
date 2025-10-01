@@ -60,6 +60,7 @@ type Student = {
   phone: string
   paidAmount: string
   classesCount: number
+  totalSessions: number
   status: 'Active' | 'Inactive' | 'Lead' | 'Customer'
   avatar: string
   lastPayment: string
@@ -106,7 +107,8 @@ export default function ContactsPage() {
           phone: contact.phone_number,
           paidAmount: `$${contact.paid_amount.toFixed(2)}`,
           classesCount: contact.subscriptions?.[0]?.remaining_sessions || 0,
-          status: 'Lead' as const,
+          totalSessions: contact.subscriptions?.[0]?.total_sessions || 0,
+          status: 'Active' as const,
           avatar: '',
           lastPayment: new Date().toISOString().split('T')[0],
           createdAt: new Date().toISOString().split('T')[0],
@@ -154,7 +156,7 @@ export default function ContactsPage() {
             name_student: studentData.name,
             phone_number: studentData.phone,
             academic_year: studentData.grade,
-            paid_amount: parseFloat(studentData.paidAmount?.replace('$', '') || '0'),
+            paid_amount: parseFloat(studentData.paidAmount?.replace('EGP', '') || '0'),
             remaining_amount: 0,
             current_sessions: studentData.classesCount || 0,
             deducted_sessions: 0,
@@ -382,7 +384,9 @@ export default function ContactsPage() {
                       <div className="space-y-2">
                         <div className="flex items-center gap-2 text-sm">
                           <Book className="h-4 w-4 text-muted-foreground" />
-                          <span>{student.classesCount} Classes</span>
+                          <span>
+                            {student.classesCount}/{student.totalSessions} Classes
+                          </span>
                         </div>
                         <div className="flex items-center gap-2 text-sm">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -422,7 +426,8 @@ export default function ContactsPage() {
                             <div className="space-y-1">
                               <h3 className="font-medium">{student.name}</h3>
                               <p className="text-sm text-muted-foreground">
-                                {student.grade} • {student.classesCount} Classes
+                                {student.grade} • {student.classesCount}/{student.totalSessions}{' '}
+                                Classes
                               </p>
                             </div>
                             <div className="flex items-center gap-4 text-sm">
