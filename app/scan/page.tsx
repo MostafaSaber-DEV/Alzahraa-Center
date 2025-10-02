@@ -6,7 +6,15 @@ import { Topbar } from '@/components/topbar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, Camera, RefreshCw, CheckCircle, XCircle, AlertTriangle } from 'lucide-react'
+import {
+  Loader2,
+  Camera,
+  RefreshCw,
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
+  Settings,
+} from 'lucide-react'
 
 type StatusType = 'idle' | 'scanning' | 'success' | 'error' | 'warning' | 'loading'
 
@@ -64,8 +72,25 @@ export default function QRScanPage() {
   const [status, setStatus] = useState<StatusMessage>({ type: 'idle', message: '' })
   const [isScanning, setIsScanning] = useState(false)
   const [cameraError, setCameraError] = useState(false)
+  const [cameraPermissionDenied, setCameraPermissionDenied] = useState(false)
+  const [isClient, setIsClient] = useState(false)
   const scannerRef = useRef<Html5QrcodeScanner | null>(null)
   const scannerElementId = 'qr-reader'
+
+  // Check if we're on the client
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+  // Check if we're in a secure context (client-side only)
+  const isSecureContext = useCallback(() => {
+    if (typeof window === 'undefined') return false
+    return (
+      window.isSecureContext ||
+      window.location.protocol === 'https:' ||
+      window.location.hostname === 'localhost'
+    )
+  }, [])
 
   // Create a ref to store the initializeScanner function
   const initializeScannerRef = useRef<() => void>()
@@ -113,7 +138,6 @@ export default function QRScanPage() {
         })
 
         setTimeout(() => {
-          // Use the ref to call initializeScanner
           initializeScannerRef.current?.()
         }, 3000)
       } else {
@@ -125,54 +149,110 @@ export default function QRScanPage() {
         message: 'Scan failed. Please try again.',
       })
     }
-  }, []) // ✅ No dependencies needed now
+  }, [])
 
-  const initializeScanner = useCallback(() => {
-    if (scannerRef.current) {
-      scannerRef.current.clear().catch((error) => {
-        console.log('Error clearing scanner:', error)
+  const initializeScanner = useCallback(async () => {
+    // Don't run on server
+    if (typeof window === 'undefined') return
+
+    // Check secure context first
+    if (!isSecureContext()) {
+      setCameraPermissionDenied(true)
+      setStatus({
+        type: 'error',
+        message:
+          'Camera access requires HTTPS. Please serve this page over HTTPS or use localhost.',
       })
+      return
     }
 
-    scannerRef.current = new Html5QrcodeScanner(
-      scannerElementId,
-      {
-        fps: 10,
-        qrbox: { width: 250, height: 250 },
-        aspectRatio: 1.0,
-      },
-      false
-    )
+    // Clear previous scanner
+    if (scannerRef.current) {
+      try {
+        await scannerRef.current.clear()
+      } catch (error) {
+        console.log('Error clearing previous scanner:', error)
+      }
+    }
 
-    scannerRef.current.render(
-      (decodedText) => {
-        handleScanSuccess(decodedText)
-      },
-      (error) => {
-        if (error.includes('NotAllowedError') || error.includes('NotFoundError')) {
-          setCameraError(true)
+    try {
+      // Check camera permissions first
+      if (navigator.permissions) {
+        const permissions = await navigator.permissions.query({ name: 'camera' as PermissionName })
+
+        if (permissions.state === 'denied') {
+          setCameraPermissionDenied(true)
           setStatus({
             type: 'error',
-            message: 'Camera not found. Please allow access or check your camera.',
+            message:
+              'Camera permission denied. Please allow camera access in your browser settings and try again.',
           })
+          return
         }
       }
-    )
 
-    setIsScanning(true)
-    setCameraError(false)
-    setStatus({ type: 'scanning', message: 'Point your camera at a QR code to scan' })
-  }, [handleScanSuccess]) // ✅ Only depends on handleScanSuccess
+      scannerRef.current = new Html5QrcodeScanner(
+        scannerElementId,
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0,
+        },
+        false
+      )
 
-  // Store initializeScanner in ref to break circular dependency
+      scannerRef.current.render(
+        (decodedText) => {
+          handleScanSuccess(decodedText)
+        },
+        (error) => {
+          console.error('Scanner error:', error)
+          if (error.includes('NotAllowedError') || error.includes('Permission denied')) {
+            setCameraPermissionDenied(true)
+            setStatus({
+              type: 'error',
+              message: 'Camera permission denied. Please allow camera access and try again.',
+            })
+          } else if (error.includes('NotFoundError')) {
+            setCameraError(true)
+            setStatus({
+              type: 'error',
+              message: 'No camera found. Please check if your camera is connected properly.',
+            })
+          } else {
+            setCameraError(true)
+            setStatus({
+              type: 'error',
+              message: 'Failed to access camera. Please try again.',
+            })
+          }
+        }
+      )
+
+      setIsScanning(true)
+      setCameraError(false)
+      setCameraPermissionDenied(false)
+      setStatus({ type: 'scanning', message: 'Point your camera at a QR code to scan' })
+    } catch (error) {
+      console.error('Failed to initialize scanner:', error)
+      setCameraError(true)
+      setStatus({
+        type: 'error',
+        message: 'Failed to initialize camera. Please check permissions and try again.',
+      })
+    }
+  }, [handleScanSuccess, isSecureContext])
+
+  // Store initializeScanner in ref
   useEffect(() => {
     initializeScannerRef.current = initializeScanner
   }, [initializeScanner])
 
+  // Initialize scanner only on client
   useEffect(() => {
-    if (scannerRef.current) return
+    if (!isClient || scannerRef.current) return
     initializeScanner()
-    // cleanup
+
     return () => {
       if (scannerRef.current) {
         scannerRef.current.clear().catch((error) => {
@@ -180,11 +260,40 @@ export default function QRScanPage() {
         })
       }
     }
-  }, [initializeScanner])
+  }, [initializeScanner, isClient])
 
   const handleRescan = () => {
     setStatus({ type: 'idle', message: '' })
+    setCameraError(false)
+    setCameraPermissionDenied(false)
     initializeScanner()
+  }
+
+  const openCameraSettings = () => {
+    handleRescan()
+  }
+
+  const guideToSettings = () => {
+    setStatus({
+      type: 'warning',
+      message:
+        'Please check your browser settings and allow camera access for this site, then click "Try Again".',
+    })
+  }
+
+  // Show loading state while checking client
+  if (!isClient) {
+    return (
+      <div className="flex min-h-screen flex-col bg-gray-50">
+        <Topbar />
+        <div className="flex flex-1 items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-blue-600" />
+            <p className="text-gray-600">Loading scanner...</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -208,18 +317,31 @@ export default function QRScanPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6">
-              {cameraError ? (
+              {cameraError || cameraPermissionDenied ? (
                 <div className="py-12 text-center">
                   <Camera className="mx-auto mb-4 h-16 w-16 text-gray-400" />
-                  <h3 className="mb-2 text-lg font-medium text-gray-900">Camera Access Required</h3>
+                  <h3 className="mb-2 text-lg font-medium text-gray-900">
+                    {cameraPermissionDenied
+                      ? 'Camera Permission Required'
+                      : 'Camera Access Required'}
+                  </h3>
                   <p className="mb-6 text-gray-600">
-                    Please allow camera access to scan QR codes, or check if your camera is working
-                    properly.
+                    {cameraPermissionDenied
+                      ? 'Please allow camera access in your browser settings to scan QR codes.'
+                      : 'Please allow camera access to scan QR codes, or check if your camera is working properly.'}
                   </p>
-                  <Button onClick={handleRescan} className="gap-2">
-                    <RefreshCw className="h-4 w-4" />
-                    Try Again
-                  </Button>
+                  <div className="space-y-3">
+                    <Button onClick={handleRescan} className="gap-2">
+                      <RefreshCw className="h-4 w-4" />
+                      Try Again
+                    </Button>
+                    {cameraPermissionDenied && (
+                      <Button variant="outline" onClick={guideToSettings} className="gap-2">
+                        <Settings className="h-4 w-4" />
+                        Browser Settings Help
+                      </Button>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -255,6 +377,11 @@ export default function QRScanPage() {
 
           <div className="mt-6 text-center text-sm text-gray-500">
             <p>Make sure the QR code is well-lit and clearly visible</p>
+            {!isSecureContext() && (
+              <p className="mt-2 text-red-600">
+                ⚠️ Camera requires HTTPS or localhost for security
+              </p>
+            )}
           </div>
         </div>
       </div>
