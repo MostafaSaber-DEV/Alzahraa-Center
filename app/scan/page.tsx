@@ -67,69 +67,65 @@ export default function QRScanPage() {
   const scannerRef = useRef<Html5QrcodeScanner | null>(null)
   const scannerElementId = 'qr-reader'
 
-  const handleScanSuccess = useCallback(
-    async (decodedText: string) => {
-      if (scannerRef.current) {
-        scannerRef.current.clear().catch((error) => {
-          console.log('Error clearing scanner:', error)
-        })
-      }
-      setIsScanning(false)
+  // Create a ref to store the initializeScanner function
+  const initializeScannerRef = useRef<() => void>()
 
-      if (!decodedText || decodedText.trim().length === 0) {
-        setStatus({
-          type: 'warning',
-          message: 'Invalid QR code. Please check and rescan.',
-        })
-        return
-      }
-
-      setStatus({
-        type: 'loading',
-        message: 'Processing scan result...',
+  const handleScanSuccess = useCallback(async (decodedText: string) => {
+    if (scannerRef.current) {
+      scannerRef.current.clear().catch((error) => {
+        console.log('Error clearing scanner:', error)
       })
+    }
+    setIsScanning(false)
 
-      try {
-        const response = await fetch(
-          'https://primary-production-6fc94.up.railway.app/webhook-test/scan-qr',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              qr_data: decodedText,
-              timestamp: new Date().toISOString(),
-            }),
-          }
-        )
+    if (!decodedText || decodedText.trim().length === 0) {
+      setStatus({
+        type: 'warning',
+        message: 'Invalid QR code. Please check and rescan.',
+      })
+      return
+    }
 
-        if (response.ok) {
-          setStatus({
-            type: 'success',
-            message: 'Scan successful. Processing data...',
-          })
+    setStatus({
+      type: 'loading',
+      message: 'Processing scan result...',
+    })
 
-          setTimeout(() => {
-            if (scannerRef.current) {
-              scannerRef.current.clear().catch(() => {})
-            }
-            // eslint-disable-next-line react-hooks/exhaustive-deps
-            initializeScanner()
-          }, 3000)
-        } else {
-          throw new Error('Failed to process scan')
+    try {
+      const response = await fetch(
+        'https://primary-production-6fc94.up.railway.app/webhook-test/scan-qr',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            qr_data: decodedText,
+            timestamp: new Date().toISOString(),
+          }),
         }
-      } catch (error) {
+      )
+
+      if (response.ok) {
         setStatus({
-          type: 'error',
-          message: 'Scan failed. Please try again.',
+          type: 'success',
+          message: 'Scan successful. Processing data...',
         })
+
+        setTimeout(() => {
+          // Use the ref to call initializeScanner
+          initializeScannerRef.current?.()
+        }, 3000)
+      } else {
+        throw new Error('Failed to process scan')
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    },
-    [setIsScanning, setStatus]
-  )
+    } catch {
+      setStatus({
+        type: 'error',
+        message: 'Scan failed. Please try again.',
+      })
+    }
+  }, []) // ✅ No dependencies needed now
 
   const initializeScanner = useCallback(() => {
     if (scannerRef.current) {
@@ -166,16 +162,17 @@ export default function QRScanPage() {
     setIsScanning(true)
     setCameraError(false)
     setStatus({ type: 'scanning', message: 'Point your camera at a QR code to scan' })
-  }, [handleScanSuccess, setIsScanning, setCameraError, setStatus])
+  }, [handleScanSuccess]) // ✅ Only depends on handleScanSuccess
 
-  const handleRescan = () => {
-    setStatus({ type: 'idle', message: '' })
-    initializeScanner()
-  }
+  // Store initializeScanner in ref to break circular dependency
+  useEffect(() => {
+    initializeScannerRef.current = initializeScanner
+  }, [initializeScanner])
 
   useEffect(() => {
+    if (scannerRef.current) return
     initializeScanner()
-
+    // cleanup
     return () => {
       if (scannerRef.current) {
         scannerRef.current.clear().catch((error) => {
@@ -184,6 +181,11 @@ export default function QRScanPage() {
       }
     }
   }, [initializeScanner])
+
+  const handleRescan = () => {
+    setStatus({ type: 'idle', message: '' })
+    initializeScanner()
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
