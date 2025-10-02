@@ -417,6 +417,9 @@ export default function GroupsPage() {
                       <div className="text-xs text-muted-foreground">
                         Created {formatRelativeTime(group.created_at)}
                       </div>
+                      <Button className="mt-4 w-full" size="sm">
+                        Start Scan
+                      </Button>
                     </CardContent>
                   </Card>
                 ))}

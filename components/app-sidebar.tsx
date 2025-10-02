@@ -9,6 +9,7 @@ import {
   UsersRound,
   GraduationCap,
   LogOut,
+  QrCode,
 } from 'lucide-react'
 
 import {
@@ -51,6 +52,11 @@ const menuItems = [
     title: 'Students',
     url: '/contacts',
     icon: UsersRound,
+  },
+  {
+    title: 'Scan',
+    url: '/scan',
+    icon: QrCode,
   },
   {
     title: 'Tasks',
