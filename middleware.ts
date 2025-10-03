@@ -39,7 +39,14 @@ export async function middleware(request: NextRequest) {
   response.headers.set('X-Frame-Options', 'DENY')
   response.headers.set('X-Content-Type-Options', 'nosniff')
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
-  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+  // Allow camera access for scan page only, with proper security
+  if (request.nextUrl.pathname.startsWith('/scan')) {
+    response.headers.set('Permissions-Policy', 'camera=(self), microphone=(self), geolocation=()')
+    response.headers.set('Feature-Policy', "camera 'self', microphone 'self'")
+  } else {
+    response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+    response.headers.set('Feature-Policy', "camera 'none', microphone 'none'")
+  }
 
   // Rate limiting for API routes
   if (request.nextUrl.pathname.startsWith('/api/')) {
