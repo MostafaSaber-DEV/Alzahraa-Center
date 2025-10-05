@@ -52,6 +52,7 @@ import {
   AlertCircle,
   RefreshCw,
 } from 'lucide-react'
+import { GroupCard } from '@/components/group-card'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -351,77 +352,23 @@ export default function GroupsPage() {
             <TabsContent value="grid" className="space-y-4">
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {filteredGroups.map((group) => (
-                  <Card key={group.id} className="transition-shadow hover:shadow-md">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1">
-                          <CardTitle className="text-lg">{group.name}</CardTitle>
-                          <CardDescription>
-                            {group.teacher?.full_name || 'No teacher assigned'}
-                          </CardDescription>
-                        </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem>
-                              <Eye className="mr-2 h-4 w-4" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setEditingGroup(group)
-                                setIsDialogOpen(true)
-                              }}
-                            >
-                              <Edit className="mr-2 h-4 w-4" />
-                              Edit Group
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="text-red-600"
-                              onClick={() => setDeleteGroupId(group.id)}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete Group
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <Badge variant="secondary">{group.subject}</Badge>
-                        <Badge variant="outline">{group.level}</Badge>
-                      </div>
-                      <div className="text-2xl font-bold">${group.session_price.toFixed(2)}</div>
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Users className="h-4 w-4 text-muted-foreground" />
-                          <span>Max {group.max_students} students</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <Clock className="h-4 w-4 text-muted-foreground" />
-                          <span>
-                            {group.schedule_time} ({group.duration_minutes}min)
-                          </span>
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {group.schedule_days.join(', ')}
-                        </div>
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        Created {formatRelativeTime(group.created_at)}
-                      </div>
-                      <Button className="mt-4 w-full" size="sm">
-                        Start Scan
-                      </Button>
-                    </CardContent>
-                  </Card>
+                  <GroupCard
+                    key={group.id}
+                    group={{
+                      id: group.id,
+                      name: group.name,
+                      description: `${group.subject} - ${group.level} | $${group.session_price.toFixed(2)} | ${group.schedule_time} (${group.duration_minutes}min)`,
+                      teacher_name: group.teacher?.full_name || 'No teacher assigned',
+                      student_count: group.max_students,
+                      created_at: group.created_at,
+                      status: 'active',
+                    }}
+                    onEdit={(g) => {
+                      setEditingGroup(group)
+                      setIsDialogOpen(true)
+                    }}
+                    onDelete={(groupId) => setDeleteGroupId(groupId)}
+                  />
                 ))}
               </div>
             </TabsContent>

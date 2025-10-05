@@ -41,8 +41,8 @@ export async function middleware(request: NextRequest) {
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
   // Allow camera access for scan page only, with proper security
   if (request.nextUrl.pathname.startsWith('/scan')) {
-    response.headers.set('Permissions-Policy', 'camera=(self), microphone=(self), geolocation=()')
-    response.headers.set('Feature-Policy', "camera 'self', microphone 'self'")
+    response.headers.set('Permissions-Policy', 'camera=*, microphone=*, geolocation=()')
+    response.headers.set('Feature-Policy', 'camera *, microphone *')
   } else {
     response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
     response.headers.set('Feature-Policy', "camera 'none', microphone 'none'")
@@ -94,6 +94,7 @@ export async function middleware(request: NextRequest) {
     '/dashboard',
     '/contacts',
     '/deals',
+    '/scan',
     '/tasks',
     '/integrations',
     '/settings',
