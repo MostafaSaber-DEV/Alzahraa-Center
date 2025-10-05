@@ -39,10 +39,13 @@ export async function middleware(request: NextRequest) {
   response.headers.set('X-Frame-Options', 'DENY')
   response.headers.set('X-Content-Type-Options', 'nosniff')
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
-  // Allow camera access for scan page only, with proper security
+  // Allow camera access for scan page on all platforms
   if (request.nextUrl.pathname.startsWith('/scan')) {
     response.headers.set('Permissions-Policy', 'camera=*, microphone=*, geolocation=()')
     response.headers.set('Feature-Policy', 'camera *, microphone *')
+    // Add additional headers for better camera support
+    response.headers.set('Cross-Origin-Embedder-Policy', 'unsafe-none')
+    response.headers.set('Cross-Origin-Opener-Policy', 'same-origin-allow-popups')
   } else {
     response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
     response.headers.set('Feature-Policy', "camera 'none', microphone 'none'")

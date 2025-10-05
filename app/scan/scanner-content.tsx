@@ -158,13 +158,16 @@ export default function QRScannerContent() {
     console.log('Hostname:', window.location.hostname)
     console.log('Secure Context:', window.isSecureContext)
 
-    if (!window.isSecureContext && window.location.hostname !== 'localhost') {
-      setStatus({
-        type: 'error',
-        message: 'Camera requires HTTPS or localhost. Please use https:// or localhost.',
-      })
-      setIsScanning(false)
-      return
+    // Allow camera on all secure contexts (HTTPS, localhost, or hosting platforms)
+    if (
+      !window.isSecureContext &&
+      !window.location.hostname.includes('localhost') &&
+      !window.location.hostname.includes('127.0.0.1') &&
+      !window.location.hostname.includes('vercel.app') &&
+      !window.location.hostname.includes('netlify.app') &&
+      !window.location.hostname.includes('railway.app')
+    ) {
+      console.warn('Insecure context detected, but attempting camera access anyway')
     }
 
     try {

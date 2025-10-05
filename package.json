@@ -18,7 +18,9 @@
     "prepare": "husky install",
     "analyze": "cross-env ANALYZE=true next build",
     "security:audit": "npm audit --audit-level=moderate",
-    "clean": "rm -rf .next out node_modules/.cache"
+    "clean": "rm -rf .next out node_modules/.cache",
+    "push": "git add . && git commit -m \"🚀 Auto commit\" && git push",
+    "deploy": "npm run build && npm run start"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
