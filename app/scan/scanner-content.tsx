@@ -15,6 +15,7 @@ import {
   AlertTriangle,
   ArrowLeft,
 } from 'lucide-react'
+import { handleWebhookResponse, notifications } from '@/lib/notifications'
 
 type StatusType = 'idle' | 'scanning' | 'success' | 'error' | 'warning' | 'loading'
 interface StatusMessage {
@@ -107,8 +108,12 @@ export default function QRScannerContent() {
         }
       )
 
-      if (!res.ok) throw new Error(`Webhook failed ${res.status}`)
-      await res.json().catch(() => ({}))
+      // Use notification system for webhook response
+      await handleWebhookResponse('https://primary-production-6fc94.up.railway.app/webhook-test/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ qr_data: decodedText, group_name: groupName }),
+      })
 
       setStatus({
         type: 'success',

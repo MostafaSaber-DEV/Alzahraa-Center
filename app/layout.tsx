@@ -4,6 +4,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { ConditionalLayout } from '@/components/conditional-layout'
 import { Toaster } from '@/components/ui/toaster'
+import { NotificationProvider } from '@/components/notification-provider'
 import { ErrorBoundary } from '@/components/error-boundary'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -27,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ErrorBoundary>
           <ConditionalLayout>{children}</ConditionalLayout>
           <Toaster />
+          <NotificationProvider />
         </ErrorBoundary>
       </body>
     </html>
