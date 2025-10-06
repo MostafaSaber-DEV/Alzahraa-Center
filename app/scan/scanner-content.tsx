@@ -163,29 +163,75 @@ export default function QRScannerContent() {
     console.log('Hostname:', window.location.hostname)
     console.log('Secure Context:', window.isSecureContext)
 
-    // Allow camera on all secure contexts (HTTPS, localhost, or hosting platforms)
-    if (
-      !window.isSecureContext &&
-      !window.location.hostname.includes('localhost') &&
-      !window.location.hostname.includes('127.0.0.1') &&
-      !window.location.hostname.includes('vercel.app') &&
-      !window.location.hostname.includes('netlify.app') &&
-      !window.location.hostname.includes('railway.app')
-    ) {
-      console.warn('Insecure context detected, but attempting camera access anyway')
+    // Check if we're in a secure context or localhost
+    const isLocalhost =
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1' ||
+      window.location.hostname.includes('.local')
+    const isSecure = window.location.protocol === 'https:' || window.isSecureContext
+
+    console.log('Is localhost:', isLocalhost)
+    console.log('Is secure:', isSecure)
+    console.log('Full URL:', window.location.href)
+
+    if (!isSecure && !isLocalhost) {
+      setPermissionDenied(true)
+      setStatus({
+        type: 'error',
+        message: 'Camera requires HTTPS or localhost. Current: ' + window.location.protocol,
+      })
+      setIsScanning(false)
+      return
     }
 
     try {
       setStatus({ type: 'loading', message: 'Testing camera access...' })
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true })
+
+      // Check if getUserMedia is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('getUserMedia not supported in this browser')
+      }
+
+      // Test camera access with more specific constraints
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+          facingMode: 'environment', // Prefer back camera
+        },
+      })
+
       console.log('Direct camera test: SUCCESS')
-      stream.getTracks().forEach((track) => track.stop())
-    } catch (error) {
+      console.log(
+        'Camera tracks:',
+        stream.getVideoTracks().map((t) => ({ label: t.label, kind: t.kind }))
+      )
+
+      // Stop all tracks
+      stream.getTracks().forEach((track) => {
+        track.stop()
+        console.log('Stopped track:', track.label)
+      })
+    } catch (error: any) {
       console.error('Direct camera test failed:', error)
+      console.error('Error name:', error.name)
+      console.error('Error message:', error.message)
+
+      let errorMessage = 'Camera access failed'
+      if (error.name === 'NotAllowedError') {
+        errorMessage = 'Camera permission denied. Please allow camera access.'
+      } else if (error.name === 'NotFoundError') {
+        errorMessage = 'No camera found. Please connect a camera.'
+      } else if (error.name === 'NotReadableError') {
+        errorMessage = 'Camera is being used by another application.'
+      } else if (error.name === 'OverconstrainedError') {
+        errorMessage = 'Camera constraints not supported.'
+      }
+
       setPermissionDenied(true)
       setStatus({
         type: 'error',
-        message: `Camera access denied: ${error instanceof Error ? error.message : 'Unknown error'}. Please allow camera access and try again.`,
+        message: `${errorMessage} (${error.name})`,
       })
       setIsScanning(false)
       return

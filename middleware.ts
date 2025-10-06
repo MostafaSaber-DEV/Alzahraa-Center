@@ -41,14 +41,14 @@ export async function middleware(request: NextRequest) {
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
   // Allow camera access for scan page on all platforms
   if (request.nextUrl.pathname.startsWith('/scan')) {
-    response.headers.set('Permissions-Policy', 'camera=*, microphone=*, geolocation=()')
-    response.headers.set('Feature-Policy', 'camera *, microphone *')
-    // Add additional headers for better camera support
-    response.headers.set('Cross-Origin-Embedder-Policy', 'unsafe-none')
-    response.headers.set('Cross-Origin-Opener-Policy', 'same-origin-allow-popups')
+    response.headers.set('Permissions-Policy', 'camera=(self), microphone=(self), geolocation=()')
+    response.headers.set('Feature-Policy', 'camera *; microphone *')
+    // Remove restrictive CORS headers that might block camera
+    response.headers.delete('Cross-Origin-Embedder-Policy')
+    response.headers.delete('Cross-Origin-Opener-Policy')
   } else {
     response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
-    response.headers.set('Feature-Policy', "camera 'none', microphone 'none'")
+    response.headers.set('Feature-Policy', "camera 'none'; microphone 'none'")
   }
 
   // Rate limiting for API routes
