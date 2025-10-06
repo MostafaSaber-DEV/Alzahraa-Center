@@ -24,19 +24,24 @@ export async function POST(request: NextRequest) {
     // Process n8n webhook data
     console.log('n8n webhook received:', body)
 
+    // Handle n8n response text format
+    let message = body.message || body.responseBody || 'تم تنفيذ العملية / Operation completed'
+    let remaining_sessions = body.remaining_sessions
+
+    // Extract remaining sessions from Arabic text if not provided directly
+    if (!remaining_sessions && typeof message === 'string') {
+      const match = message.match(/متبقي (\d+) حصة/)
+      if (match) {
+        remaining_sessions = parseInt(match[1])
+      }
+    }
+
     // Extract notification data from n8n payload
     const notificationData = {
-      type:
-        body.status === 'success'
-          ? 'success'
-          : body.status === 'error'
-            ? 'error'
-            : body.status === 'warning'
-              ? 'warning'
-              : 'info',
-      title: body.title || (body.status === 'success' ? 'نجح / Success' : 'إشعار / Notification'),
-      message: body.message || 'تم تنفيذ العملية / Operation completed',
-      remaining_sessions: body.remaining_sessions,
+      type: 'success',
+      title: 'نجح / Success',
+      message: message,
+      remaining_sessions: remaining_sessions,
       duration: 5000,
       sound: true,
     }
@@ -44,11 +49,11 @@ export async function POST(request: NextRequest) {
     // Broadcast to all connected clients in real-time
     broadcastNotification(notificationData)
 
-    // Example response matching your n8n workflow
+    // Response matching your n8n workflow
     const response = {
       status: 'success',
-      message: body.message || '✅ تم خصم الحصة بنجاح',
-      remaining_sessions: body.remaining_sessions || 3,
+      message: message,
+      remaining_sessions: remaining_sessions,
       timestamp: new Date().toISOString(),
     }
 
