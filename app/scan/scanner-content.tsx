@@ -99,18 +99,15 @@ export default function QRScannerContent() {
         timestamp: new Date().toISOString(),
       }
 
-      // Send to internal webhook instead of Railway to avoid CORS
-      await fetch('/api/webhook/n8n', {
+      // Send to internal API that forwards to Railway
+      const response = await fetch('/api/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          status: 'success',
-          message: `✅ تم مسح QR بنجاح للمجموعة: ${groupName}\n📱 البيانات: ${decodedText}`,
-          qr_data: decodedText,
-          group_name: groupName,
-          remaining_sessions: Math.floor(Math.random() * 10) + 1, // Mock data
-        }),
+        body: JSON.stringify(payload),
       })
+
+      const result = await response.json()
+      console.log('Railway response:', result)
 
       setStatus({
         type: 'success',
